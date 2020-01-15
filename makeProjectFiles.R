@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
-require(yaml)
-require(stringr)
+suppressPackageStartupMessages(require(yaml))
+suppressPackageStartupMessages(require(stringr))
 cArgs=commandArgs(trailing=T)
 
 #
@@ -44,10 +44,13 @@ if(len(mappingFile)!=1) {
     xx=file.copy(dir_ls(drafts,regexp="_sample_mapping.txt"),pwd)
 }
 
-requestDat=readLines(dir_ls(drafts,regexp="_request.txt"))
-request=strsplit(requestDat,": ") %>% map(2)
-names(request)=strsplit(requestDat,": ") %>% map(1) %>% unlist
-
+if(file.exists(drafts)) {
+    requestDat=readLines(dir_ls(drafts,regexp="_request.txt"))
+    request=strsplit(requestDat,": ") %>% map(2)
+    names(request)=strsplit(requestDat,": ") %>% map(1) %>% unlist
+} else {
+    request=list()
+}
 
 if(file.exists("_request")) {
     requestDat=readLines("_request")
@@ -109,6 +112,7 @@ if(workflow=="variant") {
         cat("\n\tCan not have NULL Assay field in variant workflow\n\n")
         quit()
     }
+    request$Comments="Run additional variant callers: muTect2, Vardict, Strelka"
 }
 
 newRequestFile=cc("Proj",projNo,"request.txt")
@@ -134,3 +138,7 @@ cat("Charges-ProjectNumber:",projNo,"\n",file=newRequestFile,append=TRUE)
 cat("Charges-Qty:",request$NumberOfSamples,"\n",file=newRequestFile,append=TRUE)
 cat("Charges-Service:",request[["Charges-Service"]],"\n\n",file=newRequestFile,append=TRUE)
 
+if(is.null(request[["Charges-Service"]])) {
+    cat("\n   Need to added Charges-Service code in [_request] file\n\n")
+    cat("Charges-Service:",request[["Charges-Service: "]],"\n",file="_request",append=TRUE)
+}

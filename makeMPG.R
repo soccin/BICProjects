@@ -1,4 +1,4 @@
-#!/ifs/work/socci/opt/R/3.4.3/bin/Rscript --no-save
+#!/usr/bin/env Rscript
 
 args <- commandArgs(trailing=T)
 
@@ -32,6 +32,7 @@ mapping=read_tsv(origMappingFile,col_names=F) %>%
 manifest=read_xlsx(args[3]) %>%
     mutate_all(~gsub("-","_",.)) %>%
     mutate_all(~gsub("[^A-Za-z0-9_]","",.))
+colnames(manifest)[1]="FID"
 
 numDuplicateSamples=manifest %>% count(FID) %>% filter(n>1) %>% nrow
 if(numDuplicateSamples>0) {
@@ -61,12 +62,18 @@ map.pool=map(
 
 mapping=bind_rows(mapping,map.pool)
 
-map.normpool=read_tsv(pooledNormalMappingFile,col_names=F) %>%
-    mutate(X2=fixSampleName(X4)) %>%
-    mutate(Type="POOLED.NORMAL") %>%
-    mutate(Patient="CTRL.POOL")
+map.normpool=read_tsv(pooledNormalMappingFile,col_names=F)
 
-mapping=bind_rows(mapping,map.normpool)
+if(nrow(map.normpool)>0) {
+
+    map.normpool = map.normpool %>%
+        mutate(X2=fixSampleName(X4)) %>%
+        mutate(Type="POOLED.NORMAL") %>%
+        mutate(Patient="CTRL.POOL")
+
+    mapping=bind_rows(mapping,map.normpool)
+
+}
 
 #
 # Pair to NUEN.POOL
@@ -86,13 +93,18 @@ getNEUNPoolPair<-function(pii) {
 }
 
 pair.neun=map(patients,getNEUNPoolPair) %>% bind_rows
-pair.pool=mapping %>%
-    filter(!grepl("POOL",Type)) %>%
-    distinct(X2) %>%
-    mutate(Normal="s_FROZENPOOLEDNORMAL") %>%
-    select(Normal,X2)
 
-pair=bind_rows(pair.neun,pair.pool) %>% distinct
+if(nrow(map.normpool)>0) {
+    pair.pool=mapping %>%
+        filter(!grepl("POOL",Type)) %>%
+        distinct(X2) %>%
+        mutate(Normal="s_FROZENPOOLEDNORMAL") %>%
+        select(Normal,X2)
+
+    pair=bind_rows(pair.neun,pair.pool) %>% distinct
+} else {
+    pair = distinct(pair.neun)
+}
 
 projectTag=basename(getwd())
 
