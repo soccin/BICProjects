@@ -44,7 +44,7 @@ if(len(mappingFile)!=1) {
     xx=file.copy(dir_ls(drafts,regexp="_sample_mapping.txt"),pwd)
 }
 
-if(file.exists(drafts)) {
+if(file.exists(drafts) && len(dir_ls(drafts,regexp="_request.txt"))>0) {
     requestDat=readLines(dir_ls(drafts,regexp="_request.txt"))
     request=strsplit(requestDat,": ") %>% map(2)
     names(request)=strsplit(requestDat,": ") %>% map(1) %>% unlist
@@ -60,10 +60,26 @@ if(file.exists("_request")) {
 }
 
 
+#######################################################################################
+# Workflow specific variables
+#######################################################################################
+
+rnaSeqDifferential=FALSE
+if(workflow == "rnaseq" & any(grepl("_comparisons",dir()))) {
+    cat("\n   Found a _sample_comparisons.txt file so setting up\n")
+    cat("   for RNASEQ_DIFFERENTIAL_GENE_V1.\n")
+    cat("\n   If this is not correct then edit _request.txt file manually\n\n")
+    rnaSeqDifferential=TRUE
+}
+
 request$Pipelines=case_when(
     workflow == "variant" ~ "variants",
     workflow == "chipseq" ~ "ChIP-seq Mapping",
     workflow == "other" ~ "ChIP-seq Mapping",
+    workflow == "rnaseq" ~ ifelse(rnaSeqDifferential,
+                                    "RNASEQ_DIFFERENTIAL_GENE_V1",
+                                    "RNASEQ_STANDARD_GENE_V1"
+                                  ),
     T ~ "NA"
     )
 
@@ -71,6 +87,7 @@ request$Run_Pipeline=case_when(
     workflow == "variant" ~ "variants",
     workflow == "chipseq" ~ "chipseq",
     workflow == "other" ~ "chipseq",
+    workflow == "rnaseq" ~ "rnaseq",
     T ~ "NA"
     )
 
@@ -78,7 +95,7 @@ if(is.null(request$Assay)) {
     request$Assay=case_when(
         workflow == "chipseq" ~ "na",
         workflow == "other" ~ "na",
-        T ~ "NA"
+        T ~ "na"
         )
 }
 
@@ -102,6 +119,34 @@ if(len(targetAssayFld)>0) {
         }
     }
 }
+
+#
+# Get necessary values if they have not already been set
+#
+
+if(is.null(request$NumberOfSamples)) {
+    suppressPackageStartupMessages(library(readr))
+    request$NumberOfSamples <- read_tsv(mappingFile,col_names=F) %>% distinct(X2) %>% nrow
+}
+
+if(is.null(request$ProjectID)) {
+    request$ProjectID <- basename(request$ProjectFolder)
+}
+
+if(is.null(request$RunNumber)) {
+    request$RunNumber <- 1
+}
+
+if(is.null(request$PI)) {
+    request$PI <- gsub("@.*","",request$PI_Email)
+}
+
+if(is.null(request$Investigator)) {
+    request$Investigator <- gsub("@.*","",request$Investigator_Email)
+}
+
+# if(is.null(request$)) {
+# }
 
 #
 # Validate
@@ -140,5 +185,6 @@ cat("Charges-Service:",request[["Charges-Service"]],"\n\n",file=newRequestFile,a
 
 if(is.null(request[["Charges-Service"]])) {
     cat("\n   Need to added Charges-Service code in [_request] file\n\n")
-    cat("Charges-Service:",request[["Charges-Service: "]],"\n",file="_request",append=TRUE)
+    cat("Charges-Service: \n",file="_request",append=TRUE)
 }
+

@@ -19,7 +19,7 @@ paths=mapping %>%
     mutate(SeqDir=gsub(".Project.*","",X4)) %>%
     distinct(SeqDir) %>%
     map(dir_ls,regexp="Project_POOLED") %>%
-    map(dir_ls,recurse=T,regexp="MOUSEPOOLEDNORMAL") %>%
+    map(dir_ls,recursive=T,regexp="MOUSEPOOLEDNORMAL") %>%
     unlist %>%
     as.character
 
