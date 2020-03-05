@@ -1,4 +1,4 @@
-#!/ifs/work/socci/opt/R/3.4.3/bin/Rscript --no-save
+#!/usr/bin/env Rscript
 
 args <- commandArgs(trailing=T)
 
@@ -7,8 +7,8 @@ if(len(args)==0) {
     quit()
 }
 
-require(readr)
-require(dplyr)
+suppressPackageStartupMessages(require(readr))
+suppressPackageStartupMessages(require(dplyr))
 args=commandArgs(trailing=T)
 
 map=read_tsv(args[1],col_names=F)
