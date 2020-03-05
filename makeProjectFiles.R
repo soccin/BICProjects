@@ -30,9 +30,14 @@ projNo=gsub("Proj_","",basename(pwd))
 workflow=basename(dirname(pwd))
 
 readmeFile=dir_ls(regexp="README")
-readmeDat=readLines(readmeFile)
-readme=strsplit(readmeDat," - ") %>% map(2)
-names(readme)=strsplit(readmeDat," - ") %>% map(1) %>% unlist %>% make.names
+if(len(readmeFile)>0) {
+    readmeDat=readLines(readmeFile)
+    readme=strsplit(readmeDat," - ") %>% map(2)
+    names(readme)=strsplit(readmeDat," - ") %>% map(1) %>% unlist %>% make.names
+} else {
+    cat("\n   No README File. Need some basic info (Cost center/Fund number)\n\n")
+    quit()
+}
 
 drafts=file.path("/ifs/projects/BIC/drafts",cc("Proj",projNo))
 
@@ -70,6 +75,35 @@ if(workflow == "rnaseq" & any(grepl("_comparisons",dir()))) {
     cat("   for RNASEQ_DIFFERENTIAL_GENE_V1.\n")
     cat("\n   If this is not correct then edit _request.txt file manually\n\n")
     rnaSeqDifferential=TRUE
+
+    #
+    # Fix windows end of file nonsense and '-' char's
+    #
+    suppressPackageStartupMessages(library(readr))
+    compFile=grep("^Proj.*_comparisons",dir(),value=T)
+    con=pipe(paste("cat",compFile,"| awk '{print $1,$2}'| tr ' ' '\t'"))
+    read_tsv(con,col_names=F) %>%
+        mutate_all(~gsub("-","_",.)) %>%
+        write_tsv(compFile,col_names=F)
+
+    #
+    # Make key.txt file
+    #
+
+    keyFile=grep("^Proj.*_key.xlsx",dir(),value=T)
+    if(!file.exists(keyFile)) {
+        STOP("ERROR: Missing KeyFile")
+    }
+
+    if(!file.exists(gsub(".xlsx",".txt",keyFile))) {
+        suppressPackageStartupMessages(library(readxl))
+        key = read_xlsx(keyFile,skip=1) %>%
+            mutate(ID=cc("s",gsub("-","_",gsub("_IGO_.*","",FASTQFileID)))) %>%
+            select(ID,GroupName) %>%
+            mutate_all(~gsub("-","_",.))
+        write_tsv(key,gsub(".xlsx",".txt",keyFile),col_names=F)
+    }
+
 }
 
 request$Pipelines=case_when(
@@ -138,11 +172,11 @@ if(is.null(request$RunNumber)) {
 }
 
 if(is.null(request$PI)) {
-    request$PI <- gsub("@.*","",request$PI_Email)
+    request$PI <- gsub("@.*","",request$`PI_E-mail`)
 }
 
 if(is.null(request$Investigator)) {
-    request$Investigator <- gsub("@.*","",request$Investigator_Email)
+    request$Investigator <- gsub("@.*","",request$`Investigator_E-mail`)
 }
 
 # if(is.null(request$)) {
@@ -157,7 +191,9 @@ if(workflow=="variant") {
         cat("\n\tCan not have NULL Assay field in variant workflow\n\n")
         quit()
     }
-    request$Comments="Run additional variant callers: muTect2, Vardict, Strelka"
+    if(is.null(request$Comments)) {
+        request$Comments="Run additional variant callers: muTect2, Vardict, Strelka"
+    }
 }
 
 newRequestFile=cc("Proj",projNo,"request.txt")
