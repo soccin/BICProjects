@@ -3,6 +3,10 @@ suppressPackageStartupMessages(require(yaml))
 suppressPackageStartupMessages(require(stringr))
 cArgs=commandArgs(trailing=T)
 
+len <- function(x) {length(x)}
+cc <- function(...) {paste(...,sep='_')}
+
+
 #
 # This code will parse command line args in the form of
 #    KEY=VAL
@@ -47,6 +51,10 @@ drafts=file.path("/ifs/projects/BIC/drafts",cc("Proj",projNo))
 mappingFile=dir_ls('.',regexp="_sample_mapping.txt")
 if(len(mappingFile)!=1) {
     xx=file.copy(dir_ls(drafts,regexp="_sample_mapping.txt"),pwd)
+    if(len(xx)<1 || !xx) {
+        cat("\n    ERROR: Can not file mapping file\n\n")
+        quit()
+    }
 }
 
 if(file.exists(drafts) && len(dir_ls(drafts,regexp="_request.txt"))>0) {
@@ -90,19 +98,19 @@ if(workflow == "rnaseq" & any(grepl("_comparisons",dir()))) {
     # Make key.txt file
     #
 
-    keyFile=grep("^Proj.*_key.xlsx",dir(),value=T)
-    if(!file.exists(keyFile)) {
-        STOP("ERROR: Missing KeyFile")
-    }
+    # keyFile=grep("^Proj.*_key.xlsx",dir(),value=T)
+    # if(len(keyFile)==0 || !file.exists(keyFile)) {
+    #     stop("ERROR: Missing KeyFile")
+    # }
 
-    if(!file.exists(gsub(".xlsx",".txt",keyFile))) {
-        suppressPackageStartupMessages(library(readxl))
-        key = read_xlsx(keyFile,skip=1) %>%
-            mutate(ID=cc("s",gsub("-","_",gsub("_IGO_.*","",FASTQFileID)))) %>%
-            select(ID,GroupName) %>%
-            mutate_all(~gsub("-","_",.))
-        write_tsv(key,gsub(".xlsx",".txt",keyFile),col_names=F)
-    }
+    # if(!file.exists(gsub(".xlsx",".txt",keyFile))) {
+    #     suppressPackageStartupMessages(library(readxl))
+    #     key = read_xlsx(keyFile,skip=1) %>%
+    #         mutate(ID=cc("s",gsub("-","_",gsub("_IGO_.*","",FASTQFileID)))) %>%
+    #         select(ID,GroupName) %>%
+    #         mutate_all(~gsub("-","_",.))
+    #     write_tsv(key,gsub(".xlsx",".txt",keyFile),col_names=F)
+    # }
 
 }
 
@@ -219,8 +227,8 @@ cat("Charges-ProjectNumber:",projNo,"\n",file=newRequestFile,append=TRUE)
 cat("Charges-Qty:",request$NumberOfSamples,"\n",file=newRequestFile,append=TRUE)
 cat("Charges-Service:",request[["Charges-Service"]],"\n\n",file=newRequestFile,append=TRUE)
 
-if(is.null(request[["Charges-Service"]])) {
-    cat("\n   Need to added Charges-Service code in [_request] file\n\n")
-    cat("Charges-Service: \n",file="_request",append=TRUE)
-}
+# if(is.null(request[["Charges-Service"]])) {
+#     cat("\n   Need to added Charges-Service code in [_request] file\n\n")
+#     cat("Charges-Service: \n",file="_request",append=TRUE)
+# }
 
