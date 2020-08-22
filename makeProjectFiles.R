@@ -35,7 +35,7 @@ workflow=basename(dirname(pwd))
 
 readmeFile=dir_ls(regexp="README")
 if(len(readmeFile)>0) {
-    readmeDat=readLines(readmeFile)
+    readmeDat=readLines(readmeFile) %>% gsub("^ *","",.)
     readme=strsplit(readmeDat," - ") %>% map(2)
     names(readme)=strsplit(readmeDat," - ") %>% map(1) %>% unlist %>% make.names
 } else {
@@ -72,45 +72,41 @@ if(file.exists("_request")) {
     request[names(request0)]=request0
 }
 
+if(file.exists("_request.txt")) {
+    requestDat=readLines("_request.txt")
+    request0=strsplit(requestDat,": ") %>% map(2)
+    names(request0)=strsplit(requestDat,": ") %>% map(1) %>% unlist
+    request[names(request0)]=request0
+}
 
 #######################################################################################
 # Workflow specific variables
 #######################################################################################
 
 rnaSeqDifferential=FALSE
-if(workflow == "rnaseq" & any(grepl("_comparisons",dir()))) {
-    cat("\n   Found a _sample_comparisons.txt file so setting up\n")
-    cat("   for RNASEQ_DIFFERENTIAL_GENE_V1.\n")
-    cat("\n   If this is not correct then edit _request.txt file manually\n\n")
-    rnaSeqDifferential=TRUE
+if(workflow == "rnaseq") {
 
-    #
-    # Fix windows end of file nonsense and '-' char's
-    #
-    suppressPackageStartupMessages(library(readr))
-    compFile=grep("^Proj.*_comparisons",dir(),value=T)
-    con=pipe(paste("cat",compFile,"| awk '{print $1,$2}'| tr ' ' '\t'"))
-    read_tsv(con,col_names=F) %>%
-        mutate_all(~gsub("-","_",.)) %>%
-        write_tsv(compFile,col_names=F)
+    cat("RNAseq workflow processing ...")
 
-    #
-    # Make key.txt file
-    #
+    if(readme$What.analysis.are.you.requesting.=="Full analysis/differential gene lists") {
 
-    # keyFile=grep("^Proj.*_key.xlsx",dir(),value=T)
-    # if(len(keyFile)==0 || !file.exists(keyFile)) {
-    #     stop("ERROR: Missing KeyFile")
-    # }
+        rnaSeqDifferential=TRUE
 
-    # if(!file.exists(gsub(".xlsx",".txt",keyFile))) {
-    #     suppressPackageStartupMessages(library(readxl))
-    #     key = read_xlsx(keyFile,skip=1) %>%
-    #         mutate(ID=cc("s",gsub("-","_",gsub("_IGO_.*","",FASTQFileID)))) %>%
-    #         select(ID,GroupName) %>%
-    #         mutate_all(~gsub("-","_",.))
-    #     write_tsv(key,gsub(".xlsx",".txt",keyFile),col_names=F)
-    # }
+    }
+
+    if(request$LIMS_Strand=="stranded-reverse") {
+        request$Strand="Reverse"
+    } else {
+        request$Strand=request$LIMS_Strand
+    }
+
+    if(rnaSeqDifferential) {
+        request$`Charges-Service`="RNASeq_Gene_Differential"
+    } else {
+        request$`Charges-Service`="RNASeq_Gene_Counts"
+    }
+
+    cat("\n")
 
 }
 
@@ -179,12 +175,34 @@ if(is.null(request$RunNumber)) {
     request$RunNumber <- 1
 }
 
+if(is.null(request$`PI_E-mail`)) {
+    request$`PI_E-mail` <- readme$Lab.head...PI.email
+    request$PI <- gsub("@.*","",request$`PI_E-mail`)
+}
+
+if(is.null(request$`Investigator_E-mail`)) {
+    request$`Investigator_E-mail` <- readme$Your.email
+    request$Investigator <- gsub("@.*","",request$`Investigator_E-mail`)
+}
+
 if(is.null(request$PI)) {
     request$PI <- gsub("@.*","",request$`PI_E-mail`)
 }
 
 if(is.null(request$Investigator)) {
     request$Investigator <- gsub("@.*","",request$`Investigator_E-mail`)
+}
+
+# if(is.null(request$PI_Name)) {
+#     request$PI_Name=""
+# }
+
+# if(is.null(request$Investigator_Name)) {
+#     request$Investigator_Name=""
+# }
+
+if(is.null(request$Species)) {
+    request$Species <- readme$Species
 }
 
 # if(is.null(request$)) {
