@@ -96,8 +96,11 @@ if(workflow == "rnaseq") {
 
     if(request$LIMS_Strand=="stranded-reverse") {
         request$Strand="Reverse"
+    } else if(request$LIMS_Strand=="non-stranded") {
+        request$Strand="None"
     } else {
-        request$Strand=request$LIMS_Strand
+        cat("\n\n  UNKNOWN STRAND VALUE CHECK MANUALLY\n\n")
+        quit("ERROR::UNKNOWN STRAND")
     }
 
     if(rnaSeqDifferential) {
