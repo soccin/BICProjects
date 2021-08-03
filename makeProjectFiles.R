@@ -43,7 +43,7 @@ if(len(readmeFile)>0) {
     quit()
 }
 
-drafts=file.path("/ifs/projects/BIC/drafts",cc("Proj",projNo))
+drafts=file.path("/juno/projects/BIC/drafts",cc("Proj",projNo))
 
 #
 # If no mapping file get the one from drafts
