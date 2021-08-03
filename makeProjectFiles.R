@@ -211,6 +211,11 @@ if(is.null(request$Investigator)) {
     request$Investigator <- gsub("@.*","",request$`Investigator_E-mail`)
 }
 
+if(is.null(request$DeliverTo_Name)) {
+    request$DeliverTo_Name=readme$Your.name
+    request$DeliverTo_Email=readme$Your.email
+}
+
 # if(is.null(request$PI_Name)) {
 #     request$PI_Name=""
 # }
