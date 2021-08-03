@@ -17,8 +17,9 @@ mapping=read_tsv(args[1],col_names=F,col_types = cols(.default = "c"))
 
 paths01=mapping %>%
     mutate(SeqDir=gsub(".Project.*","",X4)) %>%
+    mutate(SeqDir=file.path(SeqDir,"Project_POOLEDNORMALS")) %>%
     distinct(SeqDir) %>%
-    map(dir_ls,regexp="Project_POOLED") %>%
+    filter(dir.exists(SeqDir)) %>%
     map(dir_ls)
 
 if(len(args)==1) {

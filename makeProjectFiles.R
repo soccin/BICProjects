@@ -48,7 +48,7 @@ drafts=file.path("/ifs/projects/BIC/drafts",cc("Proj",projNo))
 #
 # If no mapping file get the one from drafts
 #
-mappingFile=dir_ls('.',regexp="_sample_mapping.txt")
+mappingFile=dir_ls('.',regexp="_sample_mapping.txt$")
 if(len(mappingFile)!=1) {
     xx=file.copy(dir_ls(drafts,regexp="_sample_mapping.txt"),pwd)
     if(len(xx)<1 || !xx) {
@@ -77,6 +77,19 @@ if(file.exists("_request.txt")) {
     request0=strsplit(requestDat,": ") %>% map(2)
     names(request0)=strsplit(requestDat,": ") %>% map(1) %>% unlist
     request[names(request0)]=request0
+}
+
+
+#######################################################################################
+# Use investigator info from README
+#######################################################################################
+if(!is.null(readme$Your.name)) {
+    request$Investigator_Name=stringr::str_to_title(readme$Your.name)
+}
+
+if(!is.null(readme$Your.email)) {
+    request$`Investigator_E-mail`=readme$Your.email
+    request$Investigator=gsub("@.*","",readme$Your.email)
 }
 
 #######################################################################################
@@ -108,6 +121,8 @@ if(workflow == "rnaseq") {
     } else {
         request$`Charges-Service`="RNASeq_Gene_Counts"
     }
+
+
 
     cat("\n")
 

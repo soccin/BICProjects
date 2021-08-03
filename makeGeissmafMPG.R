@@ -2,6 +2,8 @@
 
 args <- commandArgs(trailing=T)
 
+cat("\n This does not work anymore. Find makeMPGv2.R\n\n")
+
 if(len(args)==0) {
     cat("\n  usage: makeMPG.R origMappingFile pooledNormalMappingFile manifestFile\n\n")
     quit()
