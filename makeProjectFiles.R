@@ -29,6 +29,7 @@ if(len(ii)>0) {
 suppressPackageStartupMessages(require(dplyr))
 suppressPackageStartupMessages(require(purrr))
 suppressPackageStartupMessages(require(fs))
+suppressPackageStartupMessages(require(yaml))
 
 pwd=getwd()
 
@@ -38,8 +39,22 @@ workflow=basename(dirname(pwd))
 readmeFile=dir_ls(regexp="README")
 if(len(readmeFile)>0) {
     readmeDat=readLines(readmeFile) %>% gsub("^ *","",.)
-    readme=strsplit(readmeDat," - ") %>% map(2)
-    names(readme)=strsplit(readmeDat," - ") %>% map(1) %>% unlist %>% make.names
+
+    if(len(grep(" - ",readmeDat))>3) {
+
+        # Old/Orig style of README from #REQUEST forms
+        readme=strsplit(readmeDat," - ") %>% map(2)
+        names(readme)=strsplit(readmeDat," - ") %>% map(1) %>% unlist %>% make.names
+
+    } else {
+
+        # New style request
+
+        readme=read_yaml(readmeFile)
+        names(readme)=gsub("[ ?/]",".",names(readme))
+
+    }
+
 } else {
     cat("\n   No README File. Need some basic info (Cost center/Fund number)\n\n")
     quit()
