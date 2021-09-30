@@ -16,6 +16,8 @@ cc <- function(...) {paste(...,sep='_')}
 
 # Set defaults first
 
+cat("\n\nmakeProjectFiles.R Version 1.0.1\n\n")
+
 args=list(ASSAY=NULL)
 
 ii=grep("=",cArgs)
@@ -79,18 +81,18 @@ if(file.exists("_request.txt")) {
     request[names(request0)]=request0
 }
 
+# Turn this off 2021-08-16
+# #######################################################################################
+# # Use investigator info from README
+# #######################################################################################
+# if(!is.null(readme$Your.name)) {
+#     request$Investigator_Name=stringr::str_to_title(readme$Your.name)
+# }
 
-#######################################################################################
-# Use investigator info from README
-#######################################################################################
-if(!is.null(readme$Your.name)) {
-    request$Investigator_Name=stringr::str_to_title(readme$Your.name)
-}
-
-if(!is.null(readme$Your.email)) {
-    request$`Investigator_E-mail`=readme$Your.email
-    request$Investigator=gsub("@.*","",readme$Your.email)
-}
+# if(!is.null(readme$Your.email)) {
+#     request$`Investigator_E-mail`=readme$Your.email
+#     request$Investigator=gsub("@.*","",readme$Your.email)
+# }
 
 #######################################################################################
 # Workflow specific variables
@@ -212,7 +214,7 @@ if(is.null(request$Investigator)) {
 }
 
 if(is.null(request$DeliverTo_Name)) {
-    request$DeliverTo_Name=readme$Your.name
+    request$DeliverTo_Name=stringr::str_to_title(readme$Your.name)
     request$DeliverTo_Email=readme$Your.email
 }
 
@@ -241,7 +243,7 @@ if(workflow=="variant") {
         quit()
     }
     if(is.null(request$Comments)) {
-        request$Comments="Run additional variant callers: muTect2, Vardict, Strelka"
+        request$Comments="Run additional variant callers - muTect2, Vardict, Strelka"
     }
 }
 
