@@ -50,7 +50,21 @@ if(len(readmeFile)>0) {
 
         # New style request
 
-        readme=read_yaml(readmeFile)
+        #
+        # README.txt file has some lines without :
+        # Get rid of them
+
+        formLastLines="I confirm that there is no PHI on this form.:|Additional Information:|Please describe your request in as much detail as possible.:"
+
+        lastLine=grep(formLastLines,readmeDat)[1]
+
+        if(len(lastLine)==0) {
+            rlang::abort("PARSE ERROR::Last line of README not properly recognized")
+        }
+
+        readmeStr=paste(grep(": ",readmeDat[1:(lastLine-1)],value=T),collapse="\n")
+
+        readme=read_yaml(text=readmeStr)
         names(readme)=gsub("[ ?/]",".",names(readme))
 
     }
@@ -65,7 +79,7 @@ drafts=file.path("/juno/projects/BIC/drafts",cc("Proj",projNo))
 #
 # If no mapping file get the one from drafts
 #
-mappingFile=dir_ls('.',regexp="_sample_mapping.txt$")
+mappingFile=dir_ls('.',regexp="P.*_sample_mapping.txt$")
 if(len(mappingFile)!=1) {
     xx=file.copy(dir_ls(drafts,regexp="_sample_mapping.txt"),pwd)
     if(len(xx)<1 || !xx) {
@@ -118,19 +132,29 @@ if(workflow == "rnaseq") {
 
     cat("RNAseq workflow processing ...")
 
-    if(readme$What.analysis.are.you.requesting.=="Full analysis/differential gene lists") {
+    if("What.analysis.are.you.requesting." %in% names(readme)) {
+        if(readme$What.analysis.are.you.requesting.=="Full analysis/differential gene lists") {
 
-        rnaSeqDifferential=TRUE
+            rnaSeqDifferential=TRUE
 
+        }
     }
 
-    if(request$LIMS_Strand=="stranded-reverse") {
-        request$Strand="Reverse"
-    } else if(request$LIMS_Strand=="non-stranded") {
-        request$Strand="None"
+    if("LIMS_Strand" %in% names(request)) {
+        if(request$LIMS_Strand=="stranded-reverse") {
+            request$Strand="Reverse"
+        } else if(request$LIMS_Strand=="non-stranded") {
+            request$Strand="None"
+        } else {
+            cat("\n\n  UNKNOWN STRAND VALUE CHECK MANUALLY\n\n")
+            quit("ERROR::UNKNOWN STRAND")
+        }
     } else {
-        cat("\n\n  UNKNOWN STRAND VALUE CHECK MANUALLY\n\n")
-        quit("ERROR::UNKNOWN STRAND")
+        cat("\n\n  No strand value supplied in request file\n")
+        cat("  Need to add:\n")
+        cat("     LIMS_Strand: <VALUE>\n")
+        cat("\n")
+        quit()
     }
 
     if(rnaSeqDifferential) {
@@ -139,7 +163,12 @@ if(workflow == "rnaseq") {
         request$`Charges-Service`="RNASeq_Gene_Counts"
     }
 
-
+    if(readme[["ADVANCED.CUSTOMIZATIONS.(Optional)"]]=="Show") {
+        ii=which(names(readme)=="ADVANCED.CUSTOMIZATIONS.(Optional)")
+        for(jj in ii:len(readme)) {
+            request[[names(readme)[jj]]]=gsub(", ",",",readme[[jj]])
+        }
+    }
 
     cat("\n")
 
@@ -277,6 +306,12 @@ cat("\n",file=newRequestFile,append=TRUE)
 if(is.null(request[["Charges-Division"]])) {
     request[["Charges-Division"]]="BIC"
 }
+
+# if(is.null(request[["PI_Name"]])) {
+
+# }
+
+# halt("DDDD")
 
 ccfn=paste0(readme$Cost.center,"/",readme$Fund.number)
 cat("Charges-CCFN:",ccfn,"\n",file=newRequestFile,append=TRUE)
